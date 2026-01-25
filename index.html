@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        #upload-section {
+            display: block;
+        }
+
+        .code-preview {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 15px 0;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .code-label {
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        #progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            height: 20px;
+            overflow: hidden;
+            display: none;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #4caf50;
+            transition: width 0.3s ease;
+        }
+
+        #progress-text {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #666;
+            display: none;
+        }
+
+        #quiz-section {
+            display: none;
+            flex-direction: column;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        #question-image {
+            max-width: 100%;
+            max-height: 300px;
+            width: auto;
+            margin: 0 auto 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: none;
+            object-fit: contain;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button.option-btn {
+            padding: 15px;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.option-btn:hover:not(:disabled) {
+            background-color: #f0f8ff;
+            border-color: #b0c4de;
+        }
+
+        button.correct {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724;
+        }
+
+        button.wrong {
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24;
+        }
+
+        #info-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            border-radius: 4px;
+            color: #0d47a1;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn-next {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none;
+            align-self: center;
+        }
+
+        .btn-next:hover {
+            background-color: #555;
+        }
+
+        #finish-section {
+            display: none;
+        }
+
+        .btn-restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-bracket {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="upload-section">
+        <h1>Upload Questions</h1>
+        <div class="code-label">Upload your file with questions formatted as shown below:</div>
+        <pre class="code-preview"><code><span class="json-bracket">[</span>
+  {
+    <span class="json-key">"question"</span>: <span class="json-string">"Your question goes here!"</span>,
+    <span class="json-key">"img"</span>: <span class="json-string">"data:image/png;base64,Your/Optional/Image..."</span>,
+    <span class="json-key">"answers"</span>: [
+      <span class="json-string">"Correct answer"</span>,
+      <span class="json-string">"Wrong answer no. 1"</span>,
+      <span class="json-string">"Wrong answer no. 2"</span>
+    ]
+  },
+  {
+    <span class="json-key">"question"</span>: <span class="json-string">"Second question goes here, and so on, and so on..."</span>
+    ...
+  }
+<span class="json-bracket">]</span></code></pre>
+
+        <input type="file" id="fileInput" accept=".json">
+    </div>
+
+    <div id="progress-text">Learning Progress</div>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="quiz-section">
+        <h2 id="question-text">Question...</h2>
+
+        <img id="question-image" src="" alt="Question illustration">
+
+        <div class="options" id="options-container">
+        </div>
+
+        <div id="info-box"></div>
+
+        <button id="next-btn" class="btn-next">Next ➡</button>
+    </div>
+
+    <div id="finish-section">
+        <h1>Congratulations!</h1>
+        <p>You have mastered all the material.</p>
+        <button class="btn-restart" onclick="location.reload()">Load new file</button>
+    </div>
+</div>
+
+<script>
+    let questionsQueue = [];
+    let totalInitialQuestions = 0;
+
+    document.getElementById('fileInput').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                startQuiz(data);
+            } catch (err) {
+                alert("Error reading JSON file! Check format.");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('next-btn').addEventListener('click', function () {
+        this.style.display = 'none';
+        loadNextQuestion();
+    });
+
+    function startQuiz(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+            alert("File is empty or has bad format (Must be an Array [...]).");
+            return;
+        }
+
+        shuffleArray(data);
+        questionsQueue = data;
+        totalInitialQuestions = data.length;
+
+        document.getElementById('upload-section').style.display = 'none';
+        document.getElementById('progress-container').style.display = 'block';
+        document.getElementById('progress-text').style.display = 'block';
+        document.getElementById('quiz-section').style.display = 'flex';
+
+        updateProgress();
+        loadNextQuestion();
+    }
+
+    function updateProgress() {
+        let remaining = questionsQueue.length;
+        let progress = ((totalInitialQuestions - remaining) / totalInitialQuestions) * 100;
+        if (progress < 0) progress = 0;
+        document.getElementById('progress-bar').style.width = progress + "%";
+    }
+
+    function loadNextQuestion() {
+        if (questionsQueue.length === 0) {
+            finishQuiz();
+            return;
+        }
+
+        const currentQuestion = questionsQueue[0];
+
+        document.getElementById('question-text').textContent = currentQuestion.question;
+
+        const infoBox = document.getElementById('info-box');
+        infoBox.style.display = 'none';
+        infoBox.innerHTML = '';
+
+        const imgElement = document.getElementById('question-image');
+        if (currentQuestion.img) {
+            imgElement.src = currentQuestion.img;
+            imgElement.style.display = 'block';
+        } else {
+            imgElement.style.display = 'none';
+            imgElement.src = '';
+        }
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        document.getElementById('next-btn').style.display = 'none';
+
+        let correctAnswerText = currentQuestion.answers[0];
+        let answersToShow = [...currentQuestion.answers];
+        shuffleArray(answersToShow);
+
+        answersToShow.forEach(answer => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = answer;
+            btn.onclick = () => handleAnswer(btn, answer, correctAnswerText);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(selectedBtn, selectedText, correctText) {
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(b => b.disabled = true);
+
+        const currentQuestion = questionsQueue[0];
+        const isCorrect = (selectedText === correctText);
+
+        if (isCorrect) {
+            selectedBtn.classList.add('correct');
+        } else {
+            selectedBtn.classList.add('wrong');
+            buttons.forEach(b => {
+                if (b.textContent === correctText) b.classList.add('correct');
+            });
+        }
+
+        if (currentQuestion.info) {
+            const infoBox = document.getElementById('info-box');
+            infoBox.innerHTML = "💡 <b>Explanation:</b><br>" + currentQuestion.info;
+            infoBox.style.display = 'block';
+        }
+
+        if (isCorrect) {
+            questionsQueue.shift();
+        } else {
+            let wrongQuestion = questionsQueue.shift();
+            questionsQueue.push(wrongQuestion);
+        }
+
+        updateProgress();
+        document.getElementById('next-btn').style.display = 'inline-block';
+    }
+
+    function finishQuiz() {
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('progress-container').style.display = 'none';
+        document.getElementById('progress-text').style.display = 'none';
+        document.getElementById('finish-section').style.display = 'block';
+        document.getElementById('progress-bar').style.width = "100%";
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+</script>
+
+</body>
+</html>
