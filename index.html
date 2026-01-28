@@ -23,6 +23,7 @@
             width: 90%;
             max-width: 800px;
             text-align: center;
+            position: relative;
         }
 
         #upload-section {
@@ -111,11 +112,23 @@
         #quiz-section {
             display: none;
             flex-direction: column;
+            position: relative;
+        }
+
+        #attempt-label {
+            position: absolute;
+            top: -10px;
+            right: 0;
+            color: #999;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: none;
         }
 
         h2 {
             color: #333;
             margin-bottom: 1rem;
+            margin-top: 1rem;
         }
 
         #question-image {
@@ -278,6 +291,45 @@
             cursor: pointer;
         }
 
+        /* Stats Chart Styles */
+        .chart-container {
+            margin: 20px 0;
+            text-align: left;
+            width: 100%;
+        }
+        .chart-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .chart-label {
+            width: 90px;
+            font-size: 0.85rem;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .chart-bar-bg {
+            flex-grow: 1;
+            background: #eee;
+            height: 18px;
+            border-radius: 9px;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+        .chart-bar-fill {
+            height: 100%;
+            background: #4caf50;
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        .chart-value {
+            width: 30px;
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
         .json-key { color: #9cdcfe; }
         .json-string { color: #ce9178; }
         .json-bracket { color: #ffd700; }
@@ -318,6 +370,7 @@
     </div>
 
     <div id="quiz-section">
+        <div id="attempt-label">Attempt no. 2</div>
         <h2 id="question-text">Question...</h2>
 
         <img id="question-image" src="" alt="Question illustration">
@@ -348,6 +401,12 @@
     <div id="finish-section">
         <h1>Congratulations!</h1>
         <p>You have mastered all the material.</p>
+
+        <div style="margin-top: 30px; text-align:left;">
+            <h3 style="color:#555; border-bottom:1px solid #eee; padding-bottom:5px;">Performance Stats</h3>
+            <div id="stats-container"></div>
+        </div>
+
         <button class="btn-restart" onclick="location.reload()">Load new file</button>
     </div>
 </div>
@@ -355,6 +414,7 @@
 <script>
     let masterData = [];
     let questionsQueue = [];
+    let completedStats = [];
     let totalInitialQuestions = 0;
     let canAnswer = false;
 
@@ -408,9 +468,13 @@
         masterData = JSON.parse(JSON.stringify(data));
         buildCheatsheet();
 
-        shuffleArray(data);
-        questionsQueue = data;
-        totalInitialQuestions = data.length;
+        // Initialize attempt count to 1 for all questions
+        let initializedData = data.map(q => ({...q, attempts: 1}));
+
+        shuffleArray(initializedData);
+        questionsQueue = initializedData;
+        totalInitialQuestions = initializedData.length;
+        completedStats = [];
 
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('nav-tabs').style.display = 'flex';
@@ -460,6 +524,15 @@
 
         canAnswer = true;
         const currentQuestion = questionsQueue[0];
+
+        // Handle Attempt Label
+        const attemptLabel = document.getElementById('attempt-label');
+        if (currentQuestion.attempts > 1) {
+            attemptLabel.textContent = "Attempt no. " + currentQuestion.attempts;
+            attemptLabel.style.display = 'block';
+        } else {
+            attemptLabel.style.display = 'none';
+        }
 
         document.getElementById('question-text').textContent = currentQuestion.question;
 
@@ -516,12 +589,16 @@
 
         if (isCorrect) {
             selectedBtn.classList.add('correct');
+            // Store stat
+            completedStats.push(currentQuestion.attempts);
         } else {
             selectedBtn.classList.add('wrong');
             buttons.forEach(b => {
                 const textSpan = b.querySelector('span:last-child');
                 if (textSpan && textSpan.textContent === correctText) b.classList.add('correct');
             });
+            // Increment attempt for next time
+            currentQuestion.attempts++;
         }
 
         if (currentQuestion.info) {
@@ -569,6 +646,43 @@
         document.getElementById('progress-text').style.display = 'none';
         document.getElementById('finish-section').style.display = 'block';
         document.getElementById('progress-bar').style.width = "100%";
+
+        renderStatsChart();
+    }
+
+    function renderStatsChart() {
+        const counts = {1:0, 2:0, 3:0, 4:0, 5:0};
+        completedStats.forEach(attempts => {
+            if (attempts >= 5) counts[5]++;
+            else counts[attempts]++;
+        });
+
+        const maxVal = Math.max(...Object.values(counts));
+        let html = '<div class="chart-container">';
+
+        const labels = {
+            1: "1st Try",
+            2: "2nd Try",
+            3: "3rd Try",
+            4: "4th Try",
+            5: "5+ Tries"
+        };
+
+        for(let i=1; i<=5; i++) {
+            const count = counts[i];
+            const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
+
+            html += `
+            <div class="chart-row">
+                <div class="chart-label">${labels[i]}</div>
+                <div class="chart-bar-bg">
+                    <div class="chart-bar-fill" style="width: ${pct}%"></div>
+                </div>
+                <div class="chart-value">${count}</div>
+            </div>`;
+        }
+        html += '</div>';
+        document.getElementById('stats-container').innerHTML = html;
     }
 
     function shuffleArray(array) {
