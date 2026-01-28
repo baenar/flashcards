@@ -21,7 +21,7 @@
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             text-align: center;
         }
 
@@ -58,6 +58,30 @@
             width: 100%;
             box-sizing: border-box;
             cursor: pointer;
+        }
+
+        #nav-tabs {
+            display: none;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #eee;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #333;
+            color: white;
         }
 
         #progress-container {
@@ -199,6 +223,47 @@
             background-color: #555;
         }
 
+        #cheatsheet-section {
+            display: none;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        #search-input {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .table-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f8f8f8;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
         #finish-section {
             display: none;
         }
@@ -213,17 +278,9 @@
             cursor: pointer;
         }
 
-        .json-key {
-            color: #9cdcfe;
-        }
-
-        .json-string {
-            color: #ce9178;
-        }
-
-        .json-bracket {
-            color: #ffd700;
-        }
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-bracket { color: #ffd700; }
     </style>
 </head>
 <body>
@@ -250,6 +307,11 @@
         <input type="file" id="fileInput" accept=".json">
     </div>
 
+    <div id="nav-tabs">
+        <button id="tab-quiz" class="tab-btn active" onclick="switchTab('quiz')">Flashcards</button>
+        <button id="tab-sheet" class="tab-btn" onclick="switchTab('cheatsheet')">Cheatsheet</button>
+    </div>
+
     <div id="progress-text">Learning Progress</div>
     <div id="progress-container">
         <div id="progress-bar"></div>
@@ -268,6 +330,21 @@
         <button id="next-btn" class="btn-next">Next (Enter) ➡</button>
     </div>
 
+    <div id="cheatsheet-section">
+        <input type="text" id="search-input" placeholder="Search questions..." oninput="filterCheatsheet()">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Correct Answer</th>
+                </tr>
+                </thead>
+                <tbody id="cheatsheet-body"></tbody>
+            </table>
+        </div>
+    </div>
+
     <div id="finish-section">
         <h1>Congratulations!</h1>
         <p>You have mastered all the material.</p>
@@ -276,6 +353,7 @@
 </div>
 
 <script>
+    let masterData = [];
     let questionsQueue = [];
     let totalInitialQuestions = 0;
     let canAnswer = false;
@@ -288,7 +366,7 @@
         reader.onload = function (e) {
             try {
                 const data = JSON.parse(e.target.result);
-                startQuiz(data);
+                startApp(data);
             } catch (err) {
                 alert("Error reading JSON file! Check format.");
                 console.error(err);
@@ -303,8 +381,10 @@
     });
 
     window.addEventListener('keydown', function(e) {
+        if (document.getElementById('quiz-section').style.display !== 'flex') return;
+
         if (canAnswer) {
-            if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+            if (['1','2','3','4'].includes(e.key)) {
                 const index = parseInt(e.key) - 1;
                 const buttons = document.querySelectorAll('.option-btn');
                 if (buttons[index]) {
@@ -319,23 +399,50 @@
         }
     });
 
-    function startQuiz(data) {
+    function startApp(data) {
         if (!Array.isArray(data) || data.length === 0) {
             alert("File is empty or has bad format (Must be an Array [...]).");
             return;
         }
+
+        masterData = JSON.parse(JSON.stringify(data));
+        buildCheatsheet();
 
         shuffleArray(data);
         questionsQueue = data;
         totalInitialQuestions = data.length;
 
         document.getElementById('upload-section').style.display = 'none';
-        document.getElementById('progress-container').style.display = 'block';
-        document.getElementById('progress-text').style.display = 'block';
-        document.getElementById('quiz-section').style.display = 'flex';
+        document.getElementById('nav-tabs').style.display = 'flex';
 
+        switchTab('quiz');
         updateProgress();
         loadNextQuestion();
+    }
+
+    function switchTab(tab) {
+        const quizSection = document.getElementById('quiz-section');
+        const sheetSection = document.getElementById('cheatsheet-section');
+        const tabQuiz = document.getElementById('tab-quiz');
+        const tabSheet = document.getElementById('tab-sheet');
+        const progressContainer = document.getElementById('progress-container');
+        const progressText = document.getElementById('progress-text');
+
+        if (tab === 'quiz') {
+            quizSection.style.display = 'flex';
+            sheetSection.style.display = 'none';
+            tabQuiz.classList.add('active');
+            tabSheet.classList.remove('active');
+            progressContainer.style.display = 'block';
+            progressText.style.display = 'block';
+        } else {
+            quizSection.style.display = 'none';
+            sheetSection.style.display = 'flex';
+            tabSheet.classList.add('active');
+            tabQuiz.classList.remove('active');
+            progressContainer.style.display = 'none';
+            progressText.style.display = 'none';
+        }
     }
 
     function updateProgress() {
@@ -412,7 +519,8 @@
         } else {
             selectedBtn.classList.add('wrong');
             buttons.forEach(b => {
-                if (b.innerText.substring(1).trim() === correctText) b.classList.add('correct');
+                const textSpan = b.querySelector('span:last-child');
+                if (textSpan && textSpan.textContent === correctText) b.classList.add('correct');
             });
         }
 
@@ -433,8 +541,30 @@
         document.getElementById('next-btn').style.display = 'inline-block';
     }
 
+    function buildCheatsheet() {
+        const body = document.getElementById('cheatsheet-body');
+        body.innerHTML = masterData.map(q => `
+            <tr>
+                <td>${q.question}</td>
+                <td style="color: #2e7d32; font-weight: 600;">${q.answers[0]}</td>
+            </tr>
+        `).join('');
+    }
+
+    function filterCheatsheet() {
+        const val = document.getElementById('search-input').value.toLowerCase();
+        const rows = document.querySelectorAll('#cheatsheet-body tr');
+        rows.forEach(row => {
+            const qText = row.cells[0].textContent.toLowerCase();
+            const aText = row.cells[1].textContent.toLowerCase();
+            row.style.display = (qText.includes(val) || aText.includes(val)) ? '' : 'none';
+        });
+    }
+
     function finishQuiz() {
         document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('cheatsheet-section').style.display = 'none';
+        document.getElementById('nav-tabs').style.display = 'none';
         document.getElementById('progress-container').style.display = 'none';
         document.getElementById('progress-text').style.display = 'none';
         document.getElementById('finish-section').style.display = 'block';
