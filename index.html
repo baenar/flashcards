@@ -297,17 +297,20 @@
             text-align: left;
             width: 100%;
         }
+
         .chart-row {
             display: flex;
             align-items: center;
             margin-bottom: 8px;
         }
+
         .chart-label {
             width: 90px;
             font-size: 0.85rem;
             color: #555;
             flex-shrink: 0;
         }
+
         .chart-bar-bg {
             flex-grow: 1;
             background: #eee;
@@ -316,12 +319,14 @@
             overflow: hidden;
             margin-right: 10px;
         }
+
         .chart-bar-fill {
             height: 100%;
             background: #4caf50;
             width: 0%;
             transition: width 0.5s ease-out;
         }
+
         .chart-value {
             width: 30px;
             text-align: right;
@@ -330,9 +335,17 @@
             font-size: 0.9rem;
         }
 
-        .json-key { color: #9cdcfe; }
-        .json-string { color: #ce9178; }
-        .json-bracket { color: #ffd700; }
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-bracket {
+            color: #ffd700;
+        }
     </style>
 </head>
 <body>
@@ -345,6 +358,7 @@
   {
     <span class="json-key">"question"</span>: <span class="json-string">"Your question goes here!"</span>,
     <span class="json-key">"img"</span>: <span class="json-string">"data:image/png;base64,Your/Optional/Image..."</span>,
+    <span class="json-key">"info"</span>: <span class="json-string">"Additional information, visible only after answering the question!"</span>,
     <span class="json-key">"answers"</span>: [
       <span class="json-string">"Correct answer"</span>,
       <span class="json-string">"Wrong answer no. 1"</span>,
@@ -440,11 +454,11 @@
         loadNextQuestion();
     });
 
-    window.addEventListener('keydown', function(e) {
+    window.addEventListener('keydown', function (e) {
         if (document.getElementById('quiz-section').style.display !== 'flex') return;
 
         if (canAnswer) {
-            if (['1','2','3','4'].includes(e.key)) {
+            if (['1', '2', '3', '4'].includes(e.key)) {
                 const index = parseInt(e.key) - 1;
                 const buttons = document.querySelectorAll('.option-btn');
                 if (buttons[index]) {
@@ -651,7 +665,7 @@
     }
 
     function renderStatsChart() {
-        const counts = {1:0, 2:0, 3:0, 4:0, 5:0};
+        const counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
         completedStats.forEach(attempts => {
             if (attempts >= 5) counts[5]++;
             else counts[attempts]++;
@@ -668,7 +682,7 @@
             5: "5+ Tries"
         };
 
-        for(let i=1; i<=5; i++) {
+        for (let i = 1; i <= 5; i++) {
             const count = counts[i];
             const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
 
