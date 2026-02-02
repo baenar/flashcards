@@ -30,6 +30,29 @@
             display: block;
         }
 
+        .upload-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        .upload-tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            padding: 5px 10px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .upload-tab-btn.active {
+            color: #333;
+            border-bottom: 2px solid #4caf50;
+        }
+
         .code-preview {
             background-color: #1e1e1e;
             color: #d4d4d4;
@@ -39,9 +62,14 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 0.85rem;
             overflow-x: auto;
-            margin: 15px 0;
+            margin: 10px 0 20px 0;
             border: 1px solid #333;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .code-preview.active {
+            display: block;
         }
 
         .code-label {
@@ -131,6 +159,17 @@
             margin-top: 1rem;
         }
 
+        .multi-hint {
+            font-size: 0.8rem;
+            color: #666;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+            vertical-align: middle;
+            font-weight: normal;
+        }
+
         #question-image {
             max-width: 100%;
             max-height: 300px;
@@ -182,6 +221,12 @@
             border-color: #b0c4de;
         }
 
+        button.option-btn.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            box-shadow: inset 0 0 5px rgba(33, 150, 243, 0.2);
+        }
+
         button.correct {
             background-color: #d4edda !important;
             border-color: #c3e6cb !important;
@@ -192,6 +237,12 @@
             background-color: #f8d7da !important;
             border-color: #f5c6cb !important;
             color: #721c24;
+        }
+
+        button.missed {
+            border-color: #28a745 !important;
+            border-style: dashed !important;
+            color: #155724;
         }
 
         #info-box {
@@ -219,7 +270,7 @@
             }
         }
 
-        .btn-next {
+        .btn-action {
             margin-top: 20px;
             padding: 12px 25px;
             background-color: #333;
@@ -232,8 +283,15 @@
             align-self: center;
         }
 
-        .btn-next:hover {
+        .btn-action:hover {
             background-color: #555;
+        }
+
+        .btn-action.submit-mode {
+            background-color: #007bff;
+        }
+        .btn-action.submit-mode:hover {
+            background-color: #0056b3;
         }
 
         #cheatsheet-section {
@@ -291,7 +349,6 @@
             cursor: pointer;
         }
 
-        /* Stats Chart Styles */
         .chart-container {
             margin: 20px 0;
             text-align: left;
@@ -335,17 +392,9 @@
             font-size: 0.9rem;
         }
 
-        .json-key {
-            color: #9cdcfe;
-        }
-
-        .json-string {
-            color: #ce9178;
-        }
-
-        .json-bracket {
-            color: #ffd700;
-        }
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-bracket { color: #ffd700; }
     </style>
 </head>
 <body>
@@ -353,20 +402,35 @@
 <div id="container">
     <div id="upload-section">
         <h1>Upload Questions</h1>
-        <div class="code-label">Upload your file with questions formatted as shown below:</div>
-        <pre class="code-preview"><code><span class="json-bracket">[</span>
+        <div class="code-label">Choose format example:</div>
+
+        <div class="upload-tabs">
+            <button class="upload-tab-btn active" onclick="showCodeTab('single')">Single Choice</button>
+            <button class="upload-tab-btn" onclick="showCodeTab('multi')">Multiple Choice</button>
+        </div>
+
+        <pre id="code-single" class="code-preview active"><code><span class="json-bracket">[</span>
   {
-    <span class="json-key">"question"</span>: <span class="json-string">"Your question goes here!"</span>,
-    <span class="json-key">"img"</span>: <span class="json-string">"data:image/png;base64,Your/Optional/Image..."</span>,
-    <span class="json-key">"info"</span>: <span class="json-string">"Additional information, visible only after answering the question!"</span>,
+    <span class="json-key">"question"</span>: <span class="json-string">"Single choice question?"</span>,
+    <span class="json-key">"img"</span>: <span class="json-string">"Optional..."</span>,
+    <span class="json-key">"info"</span>: <span class="json-string">"Optional info..."</span>,
     <span class="json-key">"answers"</span>: [
-      <span class="json-string">"Correct answer"</span>,
-      <span class="json-string">"Wrong answer no. 1"</span>,
-      <span class="json-string">"Wrong answer no. 2"</span>
+      <span class="json-string">"Correct Answer (First item)"</span>,
+      <span class="json-string">"Wrong Answer 1"</span>,
+      <span class="json-string">"Wrong Answer 2"</span>
     ]
-  },
+  }
+<span class="json-bracket">]</span></code></pre>
+
+        <pre id="code-multi" class="code-preview"><code><span class="json-bracket">[</span>
   {
-    <span class="json-key">"question"</span>: <span class="json-string">"Second question goes here, and so on, and so on..."</span>
+    <span class="json-key">"question"</span>: <span class="json-string">"Which of these are fruits?"</span>,
+    <span class="json-key">"answers"</span>: [
+      <span class="json-string">"Y Apple"</span>,
+      <span class="json-string">"Y Banana"</span>,
+      <span class="json-string">"Carrot"</span>,
+      <span class="json-string">"Steak"</span>
+    ]
   }
 <span class="json-bracket">]</span></code></pre>
 
@@ -394,7 +458,7 @@
 
         <div id="info-box"></div>
 
-        <button id="next-btn" class="btn-next">Next (Enter) ➡</button>
+        <button id="action-btn" class="btn-action">Submit</button>
     </div>
 
     <div id="cheatsheet-section">
@@ -404,7 +468,7 @@
                 <thead>
                 <tr>
                     <th>Question</th>
-                    <th>Correct Answer</th>
+                    <th>Correct Answer(s)</th>
                 </tr>
                 </thead>
                 <tbody id="cheatsheet-body"></tbody>
@@ -430,7 +494,22 @@
     let questionsQueue = [];
     let completedStats = [];
     let totalInitialQuestions = 0;
-    let canAnswer = false;
+
+    let canInteract = false;
+    let isSubmitted = false;
+
+    function showCodeTab(type) {
+        document.querySelectorAll('.upload-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.code-preview').forEach(c => c.classList.remove('active'));
+
+        if (type === 'single') {
+            document.querySelector('button[onclick="showCodeTab(\'single\')"]').classList.add('active');
+            document.getElementById('code-single').classList.add('active');
+        } else {
+            document.querySelector('button[onclick="showCodeTab(\'multi\')"]').classList.add('active');
+            document.getElementById('code-multi').classList.add('active');
+        }
+    }
 
     document.getElementById('fileInput').addEventListener('change', function (e) {
         const file = e.target.files[0];
@@ -449,46 +528,90 @@
         reader.readAsText(file);
     });
 
-    document.getElementById('next-btn').addEventListener('click', function () {
-        this.style.display = 'none';
-        loadNextQuestion();
+    document.getElementById('action-btn').addEventListener('click', function () {
+        if (!isSubmitted) {
+            submitAnswer();
+        } else {
+            loadNextQuestion();
+        }
     });
 
     window.addEventListener('keydown', function (e) {
         if (document.getElementById('quiz-section').style.display !== 'flex') return;
 
-        if (canAnswer) {
-            if (['1', '2', '3', '4'].includes(e.key)) {
-                const index = parseInt(e.key) - 1;
-                const buttons = document.querySelectorAll('.option-btn');
-                if (buttons[index]) {
-                    buttons[index].click();
-                }
+        if (canInteract && !isSubmitted) {
+            const key = parseInt(e.key);
+            if (!isNaN(key) && key >= 1 && key <= 9) {
+                toggleOptionByIndex(key - 1);
+            } else if (key === 0) {
+                toggleOptionByIndex(9);
             }
-        } else {
-            const nextBtn = document.getElementById('next-btn');
-            if (e.key === 'Enter' && nextBtn.style.display === 'inline-block') {
-                nextBtn.click();
+        }
+
+        if (e.key === 'Enter') {
+            e.preventDefault(); // FIX BUG 2: Prevent double submission
+            const btn = document.getElementById('action-btn');
+            if (btn.style.display !== 'none') {
+                btn.click();
             }
         }
     });
 
+    function toggleOptionByIndex(index) {
+        const buttons = document.querySelectorAll('.option-btn');
+        if (buttons[index]) {
+            buttons[index].click();
+        }
+    }
+
+    function processData(rawData) {
+        return rawData.map(item => {
+            const isMulti = item.answers.some(a => a.startsWith("Y "));
+
+            let formattedOptions = [];
+
+            if (isMulti) {
+                formattedOptions = item.answers.map(ans => {
+                    if (ans.startsWith("Y ")) {
+                        return { text: ans.substring(2), isCorrect: true };
+                    } else {
+                        return { text: ans, isCorrect: false };
+                    }
+                });
+            } else {
+                formattedOptions = item.answers.map((ans, idx) => ({
+                    text: ans,
+                    isCorrect: idx === 0
+                }));
+            }
+
+            return {
+                question: item.question,
+                img: item.img,
+                info: item.info,
+                attempts: 1,
+                type: isMulti ? 'multi' : 'single',
+                options: formattedOptions
+            };
+        });
+    }
+
     function startApp(data) {
         if (!Array.isArray(data) || data.length === 0) {
-            alert("File is empty or has bad format (Must be an Array [...]).");
+            alert("File is empty or has bad format.");
             return;
         }
 
-        masterData = JSON.parse(JSON.stringify(data));
-        buildCheatsheet();
+        const processed = processData(data);
+        masterData = JSON.parse(JSON.stringify(processed));
 
-        // Initialize attempt count to 1 for all questions
-        let initializedData = data.map(q => ({...q, attempts: 1}));
+        shuffleArray(processed);
+        questionsQueue = processed;
 
-        shuffleArray(initializedData);
-        questionsQueue = initializedData;
-        totalInitialQuestions = initializedData.length;
+        totalInitialQuestions = processed.length;
         completedStats = [];
+
+        buildCheatsheet();
 
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('nav-tabs').style.display = 'flex';
@@ -536,27 +659,37 @@
             return;
         }
 
-        canAnswer = true;
-        const currentQuestion = questionsQueue[0];
+        const currentQ = questionsQueue[0];
 
-        // Handle Attempt Label
-        const attemptLabel = document.getElementById('attempt-label');
-        if (currentQuestion.attempts > 1) {
-            attemptLabel.textContent = "Attempt no. " + currentQuestion.attempts;
-            attemptLabel.style.display = 'block';
-        } else {
-            attemptLabel.style.display = 'none';
-        }
+        canInteract = true;
+        isSubmitted = false;
 
-        document.getElementById('question-text').textContent = currentQuestion.question;
+        const actionBtn = document.getElementById('action-btn');
+        actionBtn.textContent = "Submit Answer";
+        actionBtn.className = "btn-action submit-mode";
+        actionBtn.style.display = 'inline-block';
 
         const infoBox = document.getElementById('info-box');
         infoBox.style.display = 'none';
         infoBox.innerHTML = '';
 
+        const attemptLabel = document.getElementById('attempt-label');
+        if (currentQ.attempts > 1) {
+            attemptLabel.textContent = "Attempt no. " + currentQ.attempts;
+            attemptLabel.style.display = 'block';
+        } else {
+            attemptLabel.style.display = 'none';
+        }
+
+        const qTitle = document.getElementById('question-text');
+        qTitle.innerHTML = currentQ.question;
+        if(currentQ.type === 'multi') {
+            qTitle.innerHTML += ` <span class="multi-hint">(Multiple Choice)</span>`;
+        }
+
         const imgElement = document.getElementById('question-image');
-        if (currentQuestion.img) {
-            imgElement.src = currentQuestion.img;
+        if (currentQ.img) {
+            imgElement.src = currentQ.img;
             imgElement.style.display = 'block';
         } else {
             imgElement.style.display = 'none';
@@ -566,80 +699,123 @@
         const optionsContainer = document.getElementById('options-container');
         optionsContainer.innerHTML = '';
 
-        document.getElementById('next-btn').style.display = 'none';
+        let displayOptions = [...currentQ.options];
+        shuffleArray(displayOptions);
+        currentQ.displayOptions = displayOptions;
 
-        let correctAnswerText = currentQuestion.answers[0];
-        let answersToShow = [...currentQuestion.answers];
-        shuffleArray(answersToShow);
-
-        answersToShow.forEach((answer, index) => {
+        displayOptions.forEach((opt, index) => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
+            btn.dataset.idx = index;
 
             const hint = document.createElement('span');
             hint.className = 'key-hint';
-            hint.textContent = index + 1;
+            hint.textContent = (index + 1) === 10 ? 0 : index + 1;
 
             const text = document.createElement('span');
-            text.textContent = answer;
+            text.textContent = opt.text;
 
             btn.appendChild(hint);
             btn.appendChild(text);
 
-            btn.onclick = () => handleAnswer(btn, answer, correctAnswerText);
+            btn.onclick = () => handleOptionClick(btn, currentQ.type);
             optionsContainer.appendChild(btn);
         });
     }
 
-    function handleAnswer(selectedBtn, selectedText, correctText) {
-        if (!canAnswer) return;
-        canAnswer = false;
+    function handleOptionClick(btn, type) {
+        if (!canInteract || isSubmitted) return;
 
-        const buttons = document.querySelectorAll('.option-btn');
-        buttons.forEach(b => b.disabled = true);
-
-        const currentQuestion = questionsQueue[0];
-        const isCorrect = (selectedText === correctText);
-
-        if (isCorrect) {
-            selectedBtn.classList.add('correct');
-            // Store stat
-            completedStats.push(currentQuestion.attempts);
+        if (type === 'single') {
+            document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
         } else {
-            selectedBtn.classList.add('wrong');
-            buttons.forEach(b => {
-                const textSpan = b.querySelector('span:last-child');
-                if (textSpan && textSpan.textContent === correctText) b.classList.add('correct');
-            });
-            // Increment attempt for next time
-            currentQuestion.attempts++;
+            btn.classList.toggle('selected');
+        }
+    }
+
+    function submitAnswer() {
+        if (isSubmitted) return;
+
+        const currentQ = questionsQueue[0];
+        const buttons = document.querySelectorAll('.option-btn');
+
+        // FIX BUG 1: Check selection BEFORE disabling/validating
+        let selectedCount = 0;
+        buttons.forEach(btn => {
+            if (btn.classList.contains('selected')) selectedCount++;
+        });
+
+        if (selectedCount === 0) return; // Stop if nothing selected
+
+        // Now validation logic
+        let correctCount = 0;
+        let wrongSelectionCount = 0;
+        let totalCorrectOptions = currentQ.displayOptions.filter(o => o.isCorrect).length;
+
+        buttons.forEach((btn, index) => {
+            const isSelected = btn.classList.contains('selected');
+            const isActuallyCorrect = currentQ.displayOptions[index].isCorrect;
+
+            btn.disabled = true;
+
+            if (isSelected) {
+                if (isActuallyCorrect) {
+                    btn.classList.add('correct');
+                    correctCount++;
+                } else {
+                    btn.classList.add('wrong');
+                    wrongSelectionCount++;
+                }
+            } else {
+                if (isActuallyCorrect) {
+                    btn.classList.add('missed');
+                }
+            }
+        });
+
+        isSubmitted = true;
+        canInteract = false;
+
+        const passed = (correctCount === totalCorrectOptions) && (wrongSelectionCount === 0);
+
+        if (passed) {
+            completedStats.push(currentQ.attempts);
+            questionsQueue.shift();
+        } else {
+            currentQ.attempts++;
+            questionsQueue.push(questionsQueue.shift());
         }
 
-        if (currentQuestion.info) {
+        if (currentQ.info) {
             const infoBox = document.getElementById('info-box');
-            infoBox.innerHTML = "💡 <b>Explanation:</b><br>" + currentQuestion.info;
+            infoBox.innerHTML = "💡 <b>Explanation:</b><br>" + currentQ.info;
             infoBox.style.display = 'block';
         }
 
-        if (isCorrect) {
-            questionsQueue.shift();
-        } else {
-            let wrongQuestion = questionsQueue.shift();
-            questionsQueue.push(wrongQuestion);
-        }
+        const actionBtn = document.getElementById('action-btn');
+        actionBtn.textContent = passed ? "Correct! Next ➡" : "Wrong! Next ➡";
+        actionBtn.className = passed ? "btn-action" : "btn-action";
+        actionBtn.style.display = 'inline-block';
+        // FIX BUG 2: Do NOT focus the button, to prevent native "Enter = Click" behavior
 
         updateProgress();
-        document.getElementById('next-btn').style.display = 'inline-block';
     }
 
     function buildCheatsheet() {
         const body = document.getElementById('cheatsheet-body');
-        body.innerHTML = masterData.map(q => `
+        body.innerHTML = masterData.map(q => {
+            const correctText = q.options
+                .filter(o => o.isCorrect)
+                .map(o => o.text)
+                .join(', ');
+
+            return `
             <tr>
                 <td>${q.question}</td>
-                <td style="color: #2e7d32; font-weight: 600;">${q.answers[0]}</td>
+                <td style="color: #2e7d32; font-weight: 600;">${correctText}</td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     function filterCheatsheet() {
