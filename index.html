@@ -260,14 +260,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .btn-action {
@@ -395,6 +389,174 @@
         .json-key { color: #9cdcfe; }
         .json-string { color: #ce9178; }
         .json-bracket { color: #ffd700; }
+
+        /* ── Flashcard mode ── */
+
+        #flashcard-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #fc-counter {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .fc-card {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 200px;
+            border: 2px solid #e0e0e0;
+            border-radius: 14px;
+            padding: 28px 24px 20px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+            transition: transform 0.14s ease-in, background 0.2s, border-color 0.2s;
+            user-select: none;
+        }
+
+        .fc-card:hover {
+            box-shadow: 0 6px 18px rgba(0,0,0,0.11);
+        }
+
+        .fc-card.fc-answer-side {
+            background: #f0fdf4;
+            border-color: #4caf50;
+        }
+
+        .fc-card.fc-squish {
+            transform: scaleX(0);
+        }
+
+        .fc-side-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            text-transform: uppercase;
+            align-self: flex-start;
+        }
+
+        .fc-side-label.answer-label {
+            color: #4caf50;
+        }
+
+        #fc-content {
+            width: 100%;
+            text-align: center;
+        }
+
+        .fc-question-text {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .fc-image {
+            max-width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .fc-answers {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .fc-answer-item {
+            background: #d4edda;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 1rem;
+            color: #155724;
+            font-weight: 600;
+        }
+
+        .fc-info {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            border-radius: 4px;
+            color: #0d47a1;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .fc-flip-hint {
+            font-size: 0.75rem;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        .fc-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+        }
+
+        .fc-btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .fc-btn:active {
+            transform: scale(0.96);
+        }
+
+        .fc-btn-not-yet {
+            background: #fdecea;
+            color: #c62828;
+            border: 2px solid #ef9a9a;
+        }
+
+        .fc-btn-not-yet:hover {
+            background: #ffcdd2;
+        }
+
+        .fc-btn-learned {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #a5d6a7;
+        }
+
+        .fc-btn-learned:hover {
+            background: #c8e6c9;
+        }
+
+        .fc-kbd-hint {
+            font-size: 0.75rem;
+            color: #bbb;
+        }
+
+        #fc-done-msg {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #fc-done-msg h3 {
+            color: #2e7d32;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -438,7 +600,8 @@
     </div>
 
     <div id="nav-tabs">
-        <button id="tab-quiz" class="tab-btn active" onclick="switchTab('quiz')">Flashcards</button>
+        <button id="tab-quiz" class="tab-btn active" onclick="switchTab('quiz')">Quiz</button>
+        <button id="tab-flashcards" class="tab-btn" onclick="switchTab('flashcards')">Flashcards</button>
         <button id="tab-sheet" class="tab-btn" onclick="switchTab('cheatsheet')">Cheatsheet</button>
     </div>
 
@@ -459,6 +622,30 @@
         <div id="info-box"></div>
 
         <button id="action-btn" class="btn-action">Submit</button>
+    </div>
+
+    <!-- Flashcard mode -->
+    <div id="flashcard-section">
+        <div id="fc-counter">0 / 0 learned</div>
+
+        <div class="fc-card" id="fc-card" onclick="flipCard()">
+            <div class="fc-side-label" id="fc-side-label">Question</div>
+            <div id="fc-content"></div>
+            <div class="fc-flip-hint" id="fc-flip-hint">Click or press Space to reveal answer</div>
+        </div>
+
+        <div class="fc-buttons" id="fc-buttons">
+            <button class="fc-btn fc-btn-not-yet" onclick="fcMarkNotYet()">✗ Not yet</button>
+            <button class="fc-btn fc-btn-learned" onclick="fcMarkLearned()">✓ Learned</button>
+        </div>
+
+        <div class="fc-kbd-hint">Space — flip &nbsp;|&nbsp; L / → — learned &nbsp;|&nbsp; N / ← — not yet</div>
+
+        <div id="fc-done-msg">
+            <h3>All cards learned!</h3>
+            <p style="color:#555; margin:0;">Great work! Ready for another round?</p>
+            <button class="btn-restart" onclick="fcRestart()">Restart Flashcards</button>
+        </div>
     </div>
 
     <div id="cheatsheet-section">
@@ -497,6 +684,13 @@
 
     let canInteract = false;
     let isSubmitted = false;
+
+    // Flashcard state
+    let fcQueue = [];
+    let fcLearned = 0;
+    let fcTotal = 0;
+    let fcFlipped = false;
+    let fcAnimating = false;
 
     function showCodeTab(type) {
         document.querySelectorAll('.upload-tab-btn').forEach(b => b.classList.remove('active'));
@@ -537,22 +731,37 @@
     });
 
     window.addEventListener('keydown', function (e) {
-        if (document.getElementById('quiz-section').style.display !== 'flex') return;
+        // Quiz mode keys
+        if (document.getElementById('quiz-section').style.display === 'flex') {
+            if (canInteract && !isSubmitted) {
+                const key = parseInt(e.key);
+                if (!isNaN(key) && key >= 1 && key <= 9) {
+                    toggleOptionByIndex(key - 1);
+                } else if (key === 0) {
+                    toggleOptionByIndex(9);
+                }
+            }
 
-        if (canInteract && !isSubmitted) {
-            const key = parseInt(e.key);
-            if (!isNaN(key) && key >= 1 && key <= 9) {
-                toggleOptionByIndex(key - 1);
-            } else if (key === 0) {
-                toggleOptionByIndex(9);
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const btn = document.getElementById('action-btn');
+                if (btn.style.display !== 'none') {
+                    btn.click();
+                }
             }
         }
 
-        if (e.key === 'Enter') {
-            e.preventDefault(); // FIX BUG 2: Prevent double submission
-            const btn = document.getElementById('action-btn');
-            if (btn.style.display !== 'none') {
-                btn.click();
+        // Flashcard mode keys
+        if (document.getElementById('flashcard-section').style.display === 'flex') {
+            if (e.key === ' ') {
+                e.preventDefault();
+                flipCard();
+            }
+            if (e.key === 'l' || e.key === 'L' || e.key === 'ArrowRight') {
+                fcMarkLearned();
+            }
+            if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowLeft') {
+                fcMarkNotYet();
             }
         }
     });
@@ -612,6 +821,7 @@
         completedStats = [];
 
         buildCheatsheet();
+        initFlashcards();
 
         document.getElementById('upload-section').style.display = 'none';
         document.getElementById('nav-tabs').style.display = 'flex';
@@ -623,24 +833,34 @@
 
     function switchTab(tab) {
         const quizSection = document.getElementById('quiz-section');
+        const fcSection = document.getElementById('flashcard-section');
         const sheetSection = document.getElementById('cheatsheet-section');
         const tabQuiz = document.getElementById('tab-quiz');
+        const tabFc = document.getElementById('tab-flashcards');
         const tabSheet = document.getElementById('tab-sheet');
         const progressContainer = document.getElementById('progress-container');
         const progressText = document.getElementById('progress-text');
 
+        quizSection.style.display = 'none';
+        fcSection.style.display = 'none';
+        sheetSection.style.display = 'none';
+        tabQuiz.classList.remove('active');
+        tabFc.classList.remove('active');
+        tabSheet.classList.remove('active');
+
         if (tab === 'quiz') {
             quizSection.style.display = 'flex';
-            sheetSection.style.display = 'none';
             tabQuiz.classList.add('active');
-            tabSheet.classList.remove('active');
             progressContainer.style.display = 'block';
             progressText.style.display = 'block';
+        } else if (tab === 'flashcards') {
+            fcSection.style.display = 'flex';
+            tabFc.classList.add('active');
+            progressContainer.style.display = 'none';
+            progressText.style.display = 'none';
         } else {
-            quizSection.style.display = 'none';
             sheetSection.style.display = 'flex';
             tabSheet.classList.add('active');
-            tabQuiz.classList.remove('active');
             progressContainer.style.display = 'none';
             progressText.style.display = 'none';
         }
@@ -683,7 +903,7 @@
 
         const qTitle = document.getElementById('question-text');
         qTitle.innerHTML = currentQ.question;
-        if(currentQ.type === 'multi') {
+        if (currentQ.type === 'multi') {
             qTitle.innerHTML += ` <span class="multi-hint">(Multiple Choice)</span>`;
         }
 
@@ -740,15 +960,13 @@
         const currentQ = questionsQueue[0];
         const buttons = document.querySelectorAll('.option-btn');
 
-        // FIX BUG 1: Check selection BEFORE disabling/validating
         let selectedCount = 0;
         buttons.forEach(btn => {
             if (btn.classList.contains('selected')) selectedCount++;
         });
 
-        if (selectedCount === 0) return; // Stop if nothing selected
+        if (selectedCount === 0) return;
 
-        // Now validation logic
         let correctCount = 0;
         let wrongSelectionCount = 0;
         let totalCorrectOptions = currentQ.displayOptions.filter(o => o.isCorrect).length;
@@ -795,12 +1013,112 @@
 
         const actionBtn = document.getElementById('action-btn');
         actionBtn.textContent = passed ? "Correct! Next ➡" : "Wrong! Next ➡";
-        actionBtn.className = passed ? "btn-action" : "btn-action";
+        actionBtn.className = "btn-action";
         actionBtn.style.display = 'inline-block';
-        // FIX BUG 2: Do NOT focus the button, to prevent native "Enter = Click" behavior
 
         updateProgress();
     }
+
+    // ── Flashcard functions ──
+
+    function initFlashcards() {
+        fcQueue = JSON.parse(JSON.stringify(masterData));
+        shuffleArray(fcQueue);
+        fcLearned = 0;
+        fcTotal = fcQueue.length;
+        fcFlipped = false;
+        document.getElementById('fc-done-msg').style.display = 'none';
+        document.getElementById('fc-card').style.display = 'flex';
+        document.getElementById('fc-buttons').style.display = 'flex';
+        renderFcCard();
+    }
+
+    function renderFcCard() {
+        updateFcCounter();
+
+        if (fcQueue.length === 0) {
+            document.getElementById('fc-card').style.display = 'none';
+            document.getElementById('fc-buttons').style.display = 'none';
+            document.getElementById('fc-done-msg').style.display = 'flex';
+            return;
+        }
+
+        const q = fcQueue[0];
+        const card = document.getElementById('fc-card');
+        const label = document.getElementById('fc-side-label');
+        const content = document.getElementById('fc-content');
+        const hint = document.getElementById('fc-flip-hint');
+
+        if (!fcFlipped) {
+            card.classList.remove('fc-answer-side');
+            label.textContent = 'Question';
+            label.className = 'fc-side-label';
+
+            let html = `<div class="fc-question-text">${q.question}</div>`;
+            if (q.img) {
+                html += `<img class="fc-image" src="${q.img}" alt="">`;
+            }
+            content.innerHTML = html;
+            hint.textContent = 'Click or press Space to reveal answer';
+        } else {
+            card.classList.add('fc-answer-side');
+            label.textContent = 'Answer';
+            label.className = 'fc-side-label answer-label';
+
+            const correctAnswers = q.options.filter(o => o.isCorrect).map(o => o.text);
+            let html = '<div class="fc-answers">';
+            correctAnswers.forEach(a => {
+                html += `<div class="fc-answer-item">✓ ${a}</div>`;
+            });
+            html += '</div>';
+            if (q.info) {
+                html += `<div class="fc-info">💡 ${q.info}</div>`;
+            }
+            content.innerHTML = html;
+            hint.textContent = 'Click or press Space to flip back';
+        }
+    }
+
+    function flipCard() {
+        if (fcAnimating || fcQueue.length === 0) return;
+        fcAnimating = true;
+
+        const card = document.getElementById('fc-card');
+        card.classList.add('fc-squish');
+
+        setTimeout(() => {
+            fcFlipped = !fcFlipped;
+            renderFcCard();
+            card.classList.remove('fc-squish');
+            fcAnimating = false;
+        }, 140);
+    }
+
+    function fcMarkLearned() {
+        if (fcQueue.length === 0) return;
+        fcLearned++;
+        fcQueue.shift();
+        fcFlipped = false;
+        renderFcCard();
+    }
+
+    function fcMarkNotYet() {
+        if (fcQueue.length === 0) return;
+        const card = fcQueue.shift();
+        fcQueue.push(card);
+        fcFlipped = false;
+        renderFcCard();
+    }
+
+    function fcRestart() {
+        initFlashcards();
+    }
+
+    function updateFcCounter() {
+        document.getElementById('fc-counter').textContent = `${fcLearned} / ${fcTotal} learned`;
+    }
+
+    // ── Cheatsheet ──
 
     function buildCheatsheet() {
         const body = document.getElementById('cheatsheet-body');
@@ -830,6 +1148,7 @@
 
     function finishQuiz() {
         document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('flashcard-section').style.display = 'none';
         document.getElementById('cheatsheet-section').style.display = 'none';
         document.getElementById('nav-tabs').style.display = 'none';
         document.getElementById('progress-container').style.display = 'none';
