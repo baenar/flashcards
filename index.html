@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcards</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -692,6 +696,60 @@
     let fcFlipped = false;
     let fcAnimating = false;
 
+    // ── Markdown + LaTeX rendering ──
+
+    const MATH_PATTERNS = [
+        /\$\$[\s\S]+?\$\$/g,
+        /\\\[[\s\S]+?\\\]/g,
+        /\\\([\s\S]+?\\\)/g,
+        /\$[^$\n]+?\$/g
+    ];
+
+    function protectMath(text) {
+        const store = [];
+        let result = text || '';
+        MATH_PATTERNS.forEach(re => {
+            result = result.replace(re, m => {
+                const token = `@@MATH${store.length}@@`;
+                store.push(m);
+                return token;
+            });
+        });
+        return { text: result, store };
+    }
+
+    function restoreMath(html, store) {
+        store.forEach((math, i) => {
+            html = html.split(`@@MATH${i}@@`).join(math);
+        });
+        return html;
+    }
+
+    function renderInline(text) {
+        if (!text) return '';
+        const { text: protected_, store } = protectMath(text);
+        return restoreMath(marked.parseInline(protected_), store);
+    }
+
+    function renderBlock(text) {
+        if (!text) return '';
+        const { text: protected_, store } = protectMath(text);
+        return restoreMath(marked.parse(protected_), store);
+    }
+
+    function applyMath(el) {
+        if (window.renderMathInElement) {
+            renderMathInElement(el, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '\\[', right: '\\]', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false }
+                ]
+            });
+        }
+    }
+
     function showCodeTab(type) {
         document.querySelectorAll('.upload-tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.code-preview').forEach(c => c.classList.remove('active'));
@@ -902,9 +960,13 @@
         }
 
         const qTitle = document.getElementById('question-text');
-        qTitle.innerHTML = currentQ.question;
+        qTitle.innerHTML = renderInline(currentQ.question);
+        applyMath(qTitle);
         if (currentQ.type === 'multi') {
-            qTitle.innerHTML += ` <span class="multi-hint">(Multiple Choice)</span>`;
+            const hint = document.createElement('span');
+            hint.className = 'multi-hint';
+            hint.textContent = '(Multiple Choice)';
+            qTitle.appendChild(hint);
         }
 
         const imgElement = document.getElementById('question-image');
@@ -933,7 +995,8 @@
             hint.textContent = (index + 1) === 10 ? 0 : index + 1;
 
             const text = document.createElement('span');
-            text.textContent = opt.text;
+            text.innerHTML = renderInline(opt.text);
+            applyMath(text);
 
             btn.appendChild(hint);
             btn.appendChild(text);
@@ -1007,7 +1070,8 @@
 
         if (currentQ.info) {
             const infoBox = document.getElementById('info-box');
-            infoBox.innerHTML = "💡 <b>Explanation:</b><br>" + currentQ.info;
+            infoBox.innerHTML = "💡 <b>Explanation:</b><br>" + renderBlock(currentQ.info);
+            applyMath(infoBox);
             infoBox.style.display = 'block';
         }
 
@@ -1054,11 +1118,12 @@
             label.textContent = 'Question';
             label.className = 'fc-side-label';
 
-            let html = `<div class="fc-question-text">${q.question}</div>`;
+            let html = `<div class="fc-question-text">${renderInline(q.question)}</div>`;
             if (q.img) {
                 html += `<img class="fc-image" src="${q.img}" alt="">`;
             }
             content.innerHTML = html;
+            applyMath(content);
             hint.textContent = 'Click or press Space to reveal answer';
         } else {
             card.classList.add('fc-answer-side');
@@ -1068,13 +1133,14 @@
             const correctAnswers = q.options.filter(o => o.isCorrect).map(o => o.text);
             let html = '<div class="fc-answers">';
             correctAnswers.forEach(a => {
-                html += `<div class="fc-answer-item">✓ ${a}</div>`;
+                html += `<div class="fc-answer-item">✓ ${renderInline(a)}</div>`;
             });
             html += '</div>';
             if (q.info) {
-                html += `<div class="fc-info">💡 ${q.info}</div>`;
+                html += `<div class="fc-info">💡 ${renderBlock(q.info)}</div>`;
             }
             content.innerHTML = html;
+            applyMath(content);
             hint.textContent = 'Click or press Space to flip back';
         }
     }
@@ -1130,10 +1196,11 @@
 
             return `
             <tr>
-                <td>${q.question}</td>
-                <td style="color: #2e7d32; font-weight: 600;">${correctText}</td>
+                <td>${renderInline(q.question)}</td>
+                <td style="color: #2e7d32; font-weight: 600;">${renderInline(correctText)}</td>
             </tr>
         `}).join('');
+        applyMath(body);
     }
 
     function filterCheatsheet() {
