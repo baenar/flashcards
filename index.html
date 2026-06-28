@@ -408,6 +408,28 @@
             color: #666;
         }
 
+        .fc-restart-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .fc-btn-restart-small {
+            padding: 6px 14px;
+            border: 1px solid #ccc;
+            background: #f7f7f7;
+            color: #555;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .fc-btn-restart-small:hover {
+            background: #eee;
+        }
+
         .fc-card {
             width: 100%;
             box-sizing: border-box;
@@ -632,6 +654,11 @@
     <div id="flashcard-section">
         <div id="fc-counter">0 / 0 learned</div>
 
+        <div class="fc-restart-buttons">
+            <button class="fc-btn-restart-small" onclick="fcRestart(true)">🔀 Restart (Random)</button>
+            <button class="fc-btn-restart-small" onclick="fcRestart(false)">📋 Restart (In Order)</button>
+        </div>
+
         <div class="fc-card" id="fc-card" onclick="flipCard()">
             <div class="fc-side-label" id="fc-side-label">Question</div>
             <div id="fc-content"></div>
@@ -648,7 +675,10 @@
         <div id="fc-done-msg">
             <h3>All cards learned!</h3>
             <p style="color:#555; margin:0;">Great work! Ready for another round?</p>
-            <button class="btn-restart" onclick="fcRestart()">Restart Flashcards</button>
+            <div class="fc-restart-buttons">
+                <button class="btn-restart" onclick="fcRestart(true)">🔀 Restart (Random)</button>
+                <button class="btn-restart" onclick="fcRestart(false)">📋 Restart (In Order)</button>
+            </div>
         </div>
     </div>
 
@@ -1085,9 +1115,11 @@
 
     // ── Flashcard functions ──
 
-    function initFlashcards() {
+    function initFlashcards(randomize = true) {
         fcQueue = JSON.parse(JSON.stringify(masterData));
-        shuffleArray(fcQueue);
+        if (randomize) {
+            shuffleArray(fcQueue);
+        }
         fcLearned = 0;
         fcTotal = fcQueue.length;
         fcFlipped = false;
@@ -1176,8 +1208,8 @@
         renderFcCard();
     }
 
-    function fcRestart() {
-        initFlashcards();
+    function fcRestart(randomize = true) {
+        initFlashcards(randomize);
     }
 
     function updateFcCounter() {
