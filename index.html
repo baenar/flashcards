@@ -755,10 +755,22 @@
         return html;
     }
 
+    marked.setOptions({ breaks: true });
+
+    function unwrapSingleParagraph(html) {
+        const trimmed = html.trim();
+        const m = trimmed.match(/^<p>([\s\S]*)<\/p>$/);
+        if (m && !m[1].includes('<p>')) {
+            return m[1];
+        }
+        return html;
+    }
+
     function renderInline(text) {
         if (!text) return '';
         const { text: protected_, store } = protectMath(text);
-        return restoreMath(marked.parseInline(protected_), store);
+        const html = marked.parse(protected_);
+        return restoreMath(unwrapSingleParagraph(html), store);
     }
 
     function renderBlock(text) {
